@@ -5,32 +5,30 @@
 > **Retrieve, Don't Hallucinate. Recover, But Verify.**
 
 MediRely helps multimodal medical AI remain reliable when clinical reports are
-unavailable by **retrieving real clinical evidence, recovering useful context, and
-estimating whether that evidence is trustworthy** — instead of hallucinating a
-missing report.
+unavailable by **retrieving real clinical evidence, recovering useful context,
+and estimating whether that evidence is trustworthy** — instead of hallucinating
+a missing report.
 
-> ⚕️ **Research prototype — not for clinical use.** See [Disclaimer](#clinical-disclaimer).
+> ⚕️ **Research prototype — not for clinical use.** See
+> [Clinical Disclaimer](#clinical-disclaimer).
 
 ---
 
 ## Demo
 
-<!-- TODO: replace with the final demo video / GIF -->
-> 📹 **Demo video:** _add link here_ &nbsp;·&nbsp; place a GIF at `assets/demo.gif` and embed it:
-> `![MediRely demo](assets/demo.gif)`
+![MediRely demo](assets/medirely_demo.gif)
 
-What you see in the demo:
+The demo shows the complete recovery workflow:
 
-1. A chest X-ray is loaded — **CHEST X-RAY: AVAILABLE**.
-2. The clinical report is **MISSING**.
-3. Click **Recover with MediRely**.
-4. MedSigLIP encodes the X-ray; **NVIDIA cuVS** retrieves the Top-K most similar
-   real cases from the clinical memory.
-5. The retrieved cases are shown with **similarity scores** and **real report excerpts**.
-6. MediRely aggregates those reports into **recovered clinical context**.
-7. An **Evidence Reliability** score (HIGH / MEDIUM / LOW) estimates how much the
-   recovered context can be trusted.
-8. The **image-only** prediction is compared with the **MediRely** prediction.
+1. A chest X-ray is available while the clinical report is missing.
+2. **MedSigLIP** encodes the X-ray for evidence retrieval.
+3. **NVIDIA cuVS** searches the clinical memory for similar cases.
+4. MediRely recovers clinical context from retrieved evidence.
+5. **Evidence Reliability** estimates how trustworthy that recovered context is.
+6. The image-only prediction is compared with the MediRely prediction.
+
+The interface exposes the retrieval backend, retrieved evidence, recovered context,
+reliability estimate, and downstream prediction in one interactive workflow.
 
 ---
 
@@ -38,22 +36,26 @@ What you see in the demo:
 
 When a clinical report is unavailable, MediRely:
 
-1. encodes the X-ray with **MedSigLIP** (retrieval representation),
-2. retrieves similar **real** cases using **NVIDIA cuVS** (GPU vector search),
-3. aggregates their **real reports** into recovered clinical context,
-4. estimates **evidence reliability**,
-5. supports the downstream multimodal prediction — whose image encoder remains the
-   validated **TorchXRayVision DenseNet‑121**.
+1. encodes the X-ray with **MedSigLIP** for evidence retrieval,
+2. retrieves similar real cases using **NVIDIA cuVS** GPU vector search,
+3. aggregates retrieved clinical evidence into recovered context,
+4. estimates **evidence reliability**, and
+5. uses the recovered context with the existing multimodal prediction branch.
 
-> **MedSigLIP is used only for the evidence-retrieval branch.** It does **not**
-> perform the final prediction. MediRely **retrieves and aggregates real report
-> evidence — it is not a report-generation model.**
+The downstream image representation remains the validated
+**TorchXRayVision DenseNet-121** representation.
+
+> **MedSigLIP is used for the evidence-retrieval branch, not as the final
+> prediction image encoder.**
+>
+> MediRely retrieves and aggregates existing clinical evidence. It is **not a
+> report-generation model**.
 
 ---
 
 ## Results
 
-Held-out **IU X-Ray** test set, macro AUC (**GTC retrieval extension**):
+Held-out **IU X-Ray** test set, macro AUC:
 
 | Method | Macro AUC |
 |---|---:|
@@ -61,197 +63,320 @@ Held-out **IU X-Ray** test set, macro AUC (**GTC retrieval extension**):
 | XRV retrieval | 0.777 |
 | **MedSigLIP + NVIDIA cuVS retrieval** | **0.819** |
 
-See [Results](#results-1) for the full breakdown and the separately-labelled
-GTC-only calibrated (soft-gated) variant. These are **not** the original MICCAI
-paper numbers — see [Research foundation](#research-foundation).
+These results are from the **GTC retrieval extension**.
+
+A separately evaluated GTC-only calibrated soft-gated variant reaches
+**0.824 macro AUC / 0.015 ECE**.
+
+See [Detailed Results](#detailed-results) for the full breakdown.
+
+> These numbers are separate from the original MICCAI study. See
+> [Research Foundation](#research-foundation).
 
 ---
 
 ## Quick Start
 
-The demo runs in two configurations. **Genuine NVIDIA cuVS runs in the WSL2
-(Ubuntu) backend**; Windows-native uses a PyTorch CUDA fallback (never labelled as
-cuVS). Choose your path:
-
-### WSL2 — genuine NVIDIA cuVS (recommended)
+### 1. Clone
 
 ```bash
-# 1) clone
-git clone <repo-url> medirely && cd medirely
+git clone https://github.com/JianJiaXian/MediRely_GTC.git
+cd MediRely_GTC
+```
 
-# 2) environment (Ubuntu / WSL2, NVIDIA driver with CUDA 12 support)
-conda create -n medirely_live python=3.11 -y && conda activate medirely_live
-pip install torch==2.8.* torchvision==0.23.* --index-url https://download.pytorch.org/whl/cu129
-pip install --extra-index-url https://pypi.nvidia.com cuvs-cu12==24.12.*
+### 2. Create the environment
+
+The recommended configuration uses **WSL2 / Ubuntu** with genuine NVIDIA cuVS.
+
+```bash
+conda create -n medirely_live python=3.11 -y
+conda activate medirely_live
+
+pip install torch==2.8.* torchvision==0.23.* \
+  --index-url https://download.pytorch.org/whl/cu129
+
+pip install --extra-index-url https://pypi.nvidia.com \
+  cuvs-cu12==24.12.*
+
 pip install -r requirements-wsl-cuvs.txt
+```
 
-# 3) place the model + artifacts (see "Model setup" and "Artifact setup")
-#    ./medsiglip-448/            (MedSigLIP snapshot, gated on Hugging Face)
-#    ./artifacts_local/          (embeddings, checkpoint, bank, calibration, images)
+### 3. Obtain MedSigLIP
 
-# 4) run — header shows "NVIDIA cuVS / LIVE"
+MediRely uses:
+
+`google/medsiglip-448`
+
+MedSigLIP is gated and is **not redistributed by this repository**.
+
+Obtain the model from the official Hugging Face repository after accepting the
+applicable HAI-DEF terms, then place it at:
+
+```text
+MediRely_GTC/
+└── medsiglip-448/
+    ├── config.json
+    └── ...
+```
+
+Alternatively:
+
+```bash
+export MEDIRELY_MEDSIGLIP_DIR=/path/to/medsiglip-448
+```
+
+### 4. Public MediRely artifacts
+
+The sanitized artifacts required for retrieval, reliability estimation, and
+prediction are included in:
+
+```text
+public_artifacts/
+```
+
+They were generated from the validated MediRely research pipeline and audited
+before public release.
+
+They contain **no source X-ray images, full clinical reports, absolute dataset
+paths, gated MedSigLIP weights, or authentication tokens**.
+
+See:
+
+```text
+public_artifacts/ARTIFACTS.md
+```
+
+for artifact descriptions, SHA256 checksums, and sanitization details.
+
+### 5. Run
+
+```bash
 export MEDIRELY_MODEL_ROOT="$PWD"
 ./run_local_cuvs.sh
 ```
-Then open **http://localhost:7860** in your Windows browser.
 
-### CPU-only UI preview (no GPU, no model — instant)
+Open:
+
+```text
+http://localhost:7860
+```
+
+When genuine NVIDIA cuVS is active, the interface displays:
+
+```text
+NVIDIA cuVS / LIVE
+```
+
+---
+
+## UI Preview
+
+The repository also includes recorded, de-identified preview outputs.
+
+No GPU, MedSigLIP model, or live inference is required:
 
 ```bash
-pip install -r requirements-wsl-cuvs.txt      # only the light web stack is used
 python -m gtc_demo.app.app --preview
 ```
-Preview renders the interface from **recorded** verified outputs for the built-in
-demo cases (it does **not** run live inference and never claims live cuVS).
 
-### Windows-native fallback (PyTorch CUDA)
-
-```bat
-run_local_gpu.bat
-```
-Header shows **PyTorch CUDA / LIVE**. See [Windows fallback](#windows-fallback).
+Preview mode renders the interface using recorded outputs and **does not claim
+live cuVS inference**.
 
 ---
 
 ## Why MediRely
 
-Many multimodal medical AI models assume that **both** the image **and** the
-clinical report are available at inference time. In real workflows the report may
-be **missing, delayed, inaccessible, or simply not yet written**.
+Many multimodal medical AI systems assume that both the medical image and its
+clinical report are available at inference time.
 
-Two common fallbacks are unsatisfying:
+In real workflows, however, the report may be **missing, delayed, inaccessible,
+or not yet written**.
 
-- **Image-only inference** discards the text modality the model was trained to use,
-  which can reduce confidence or predictive performance.
-- **Generating a missing report** risks introducing **hallucinated** clinical
-  context that was never grounded in real evidence.
+Two common fallbacks are problematic:
 
-**MediRely instead retrieves real evidence from similar cases and explicitly
-estimates whether that evidence is trustworthy** — recovering context without
-inventing it, and telling the user how much to trust the recovery.
+- **Image-only inference** discards a modality the multimodal model was trained to
+  use.
+- **Generating a missing report** can introduce hallucinated clinical information
+  that was never grounded in real evidence.
 
----
+MediRely takes a different approach:
 
-## Key features
-
-- **Missing-context recovery** — keeps the multimodal pipeline working when the report is absent
-- **Real clinical evidence retrieval** — Top-K real training cases, not generated text
-- **MedSigLIP medical image embeddings** for the retrieval representation
-- **NVIDIA cuVS** GPU vector search over the clinical memory
-- **Reliability-aware** context recovery (evidence agreement + retrieval confidence)
-- **Existing multimodal prediction branch preserved** (TorchXRayVision DenseNet‑121)
-- **Local GPU demo** on a consumer NVIDIA GPU
-- **Interactive Gradio interface** with an honest, live backend badge
+> **Retrieve real evidence, recover the missing context, and estimate whether that
+> recovered evidence can be trusted.**
 
 ---
 
-## System architecture
+## Key Features
 
-```mermaid
-flowchart LR
-    A[Query Chest X-ray]
+- **Missing-context recovery** for multimodal medical AI
+- **Real evidence retrieval** instead of generated reports
+- **MedSigLIP** medical image embeddings for retrieval
+- **NVIDIA cuVS** GPU vector search over clinical memory
+- **Reliability-aware recovery** using evidence agreement and retrieval confidence
+- Existing **TorchXRayVision DenseNet-121** prediction branch preserved
+- Interactive local GPU demo
+- Transparent live retrieval-backend indicator
+- Audited public inference artifacts
+- cuVS-vs-PyTorch numerical parity verification
 
-    subgraph Evidence Retrieval Path
-      A --> B[MedSigLIP]
-      B --> C[Medical Image Embedding]
-      C --> D[NVIDIA cuVS]
-      D --> E[Top-K Similar Real Cases]
-      E --> F[Real Clinical Reports]
-      F --> G[MediRely Context Aggregation]
-      G --> H[Recovered Clinical Context]
-      G --> I[Evidence Reliability]
-    end
+---
 
-    subgraph Prediction Path
-      A --> J[TorchXRayVision DenseNet121]
-      J --> K[Image Features]
-    end
+## System Architecture
 
-    H --> L[Existing Multimodal Classifier]
-    K --> L
-    L --> M[Prediction]
+![MediRely architecture](assets/medirely_architecture_v2.gif)
 
-    I --> N[Displayed Reliability Score]
+The system contains two distinct paths.
+
+### Evidence Retrieval Path
+
+```text
+Query X-ray
+    ↓
+MedSigLIP
+    ↓
+Medical image embedding
+    ↓
+NVIDIA cuVS
+    ↓
+Top-K similar cases
+    ↓
+Retrieved clinical evidence
+    ↓
+MediRely context recovery
+    ├──→ Recovered clinical context
+    └──→ Evidence reliability
 ```
 
-**Evidence Retrieval Path** = MedSigLIP + NVIDIA cuVS. **Prediction Path** = the
-validated TorchXRayVision DenseNet‑121 encoder + the existing multimodal
-classifier. Evidence Reliability is **displayed** to the user; it is not fed into
-the classifier. (An optional, clearly-labelled *GTC-only calibrated soft-gate*
-blends image-only and recovered-context probabilities — see [Results](#results-1).)
+### Prediction Path
+
+```text
+Query X-ray
+    ↓
+TorchXRayVision DenseNet-121
+    ↓
+Image features
+           +
+Recovered clinical context
+           ↓
+Existing multimodal classifier
+           ↓
+Prediction
+```
+
+**Evidence Reliability is estimated and displayed alongside the prediction.**
+It is not directly fed into the base multimodal classifier.
+
+A separately evaluated GTC-only calibrated soft-gate can optionally blend the
+image-only and recovered-context probabilities.
 
 ---
 
-## How it works
+## How It Works
 
-**Step 1 — Query X-ray input.** A chest X-ray enters the pipeline; the clinical
-report is absent.
+### 1. Query X-ray
 
-**Step 2 — MedSigLIP retrieval representation.** The X-ray is encoded into a
-medical image embedding (1152-d) with `google/medsiglip-448` using its official
-`SiglipImageProcessor` preprocessing (448×448). This embedding is used **only for
-retrieval**.
+A chest X-ray enters the system while its clinical report is unavailable.
 
-**Step 3 — NVIDIA cuVS search.** cuVS performs GPU nearest-neighbour search over
-the clinical memory (the MedSigLIP embeddings of the training cases) and returns
-the Top-K nearest cases. Cosine similarity is computed via squared-Euclidean on
-L2-normalized vectors (`cosine = 1 − d/2`).
+### 2. MedSigLIP retrieval representation
 
-**Step 4 — Real report evidence.** The **real** reports of the retrieved cases are
-used as evidence (surfaced in the UI as report excerpts and similarity scores).
+`google/medsiglip-448` encodes the X-ray into a **1152-dimensional medical image
+embedding**.
 
-**Step 5 — Context recovery.** MediRely aggregates the retrieved report evidence
-(similarity-weighted) into a recovered clinical-context representation. No text is
-generated.
+The MedSigLIP representation is used specifically for evidence retrieval.
 
-**Step 6 — Reliability estimation.** Neighbour **evidence agreement** and
-**retrieval confidence** are combined by a validation-calibrated gate into an
-evidence-reliability estimate (HIGH / MEDIUM / LOW).
+### 3. NVIDIA cuVS search
 
-**Step 7 — Prediction.** TorchXRayVision DenseNet‑121 extracts the image
-representation used by the validated prediction branch. That image representation
-and the recovered clinical context are fed into the **existing multimodal
-classifier** to produce the prediction.
+NVIDIA cuVS performs GPU nearest-neighbor search over the clinical-memory
+embeddings and retrieves the Top-K nearest cases.
+
+Vectors are L2 normalized and cosine similarity is derived from squared Euclidean
+distance:
+
+```text
+cosine_similarity = 1 - distance / 2
+```
+
+### 4. Evidence retrieval
+
+The retrieved cases provide the evidence used for context recovery.
+
+When the user has locally obtained the source IU X-Ray reports, the GUI can also
+display real report excerpts for those retrieved cases.
+
+### 5. Context recovery
+
+MediRely aggregates the retrieved evidence into a recovered clinical-context
+representation.
+
+**No missing report text is generated.**
+
+### 6. Reliability estimation
+
+Neighbor evidence agreement and retrieval confidence are combined into an
+evidence-reliability estimate.
+
+The interface presents this as:
+
+```text
+HIGH / MEDIUM / LOW
+```
+
+### 7. Prediction
+
+TorchXRayVision DenseNet-121 extracts the image representation used by the
+validated prediction branch.
+
+The image representation and recovered clinical context are passed to the
+existing multimodal classifier.
 
 ---
 
-## NVIDIA technology
+## NVIDIA Technology
 
-**NVIDIA cuVS** powers the **GPU clinical-memory retrieval** in MediRely:
+**NVIDIA cuVS** powers MediRely's GPU clinical-memory retrieval layer.
 
-- Top-K nearest-neighbour search over the MedSigLIP clinical-memory embeddings.
-- Genuine cuVS brute-force (`from cuvs.neighbors import brute_force`) on a local
-  NVIDIA GPU (run inside the WSL2 backend).
-- The GUI shows the **actual** retrieval backend (`NVIDIA cuVS / LIVE`); if cuVS is
-  unavailable, the app refuses to mislabel it (see [Verifying cuVS](#verifying-nvidia-cuvs-is-active)).
+The GTC implementation uses genuine cuVS brute-force nearest-neighbor search:
 
-> The clinical memory in this demo has ~5,217 vectors. **We do not claim a speedup
-> over PyTorch at this size** — cuVS is used as the genuine, scalable GPU
-> nearest-neighbour backend for the retrieval layer. cuVS-vs-PyTorch **numerical
-> parity** is reported in [Reproducibility](#reproducibility).
+```python
+from cuvs.neighbors import brute_force
+```
+
+cuVS searches over the MedSigLIP clinical-memory embeddings and returns the
+Top-K nearest cases.
+
+The application explicitly reports the active backend:
+
+```text
+NVIDIA cuVS / LIVE
+```
+
+If genuine cuVS is requested but unavailable, the strict WSL2 launcher fails
+rather than silently presenting another backend as cuVS.
+
+> The current IU X-Ray clinical memory contains approximately 5,217 vectors.
+> MediRely does **not claim a cuVS speedup over PyTorch at this scale**.
+> cuVS is used as the genuine GPU vector-search backend and provides a path toward
+> larger clinical-memory deployments.
 
 ---
 
-## Open models and dependencies
+## Open Models and Dependencies
 
 | Component | Role |
 |---|---|
-| **MedSigLIP** (`google/medsiglip-448`) | Evidence **retrieval** representation (image embedding) |
-| **TorchXRayVision DenseNet‑121** | **Prediction** image encoder (validated branch) |
-| **NVIDIA cuVS** | GPU nearest-neighbour retrieval over the clinical memory |
+| **MedSigLIP** (`google/medsiglip-448`) | Medical image representation for evidence retrieval |
+| **TorchXRayVision DenseNet-121** | Image representation for the validated prediction branch |
+| **NVIDIA cuVS** | GPU nearest-neighbor search over clinical memory |
 | **Gradio** | Interactive demo interface |
-
-MedSigLIP does **not** produce the final prediction; it only drives retrieval.
 
 ---
 
-## Results
+# Detailed Results
 
-All numbers below are the **GTC retrieval extension** on the **held-out IU X-Ray
-test set** (macro AUC). They are **separate from** the original MICCAI research
-results (see [Research foundation](#research-foundation)).
+All results in this section are from the **GTC retrieval extension** evaluated on
+the held-out IU X-Ray test set.
 
-**Retrieval representation comparison** (same validated classifier, same test set):
+### Retrieval representation comparison
 
 | Method | Macro AUC |
 |---|---:|
@@ -259,82 +384,83 @@ results (see [Research foundation](#research-foundation)).
 | XRV retrieval | 0.777 |
 | **MedSigLIP + NVIDIA cuVS retrieval** | **0.819** |
 
-**GTC-only calibrated extension (soft-gated)** — a validation-calibrated blend of
-the image-only and recovered-context predictions. Reported **separately** because
-it is an added GTC-only calibration, not the base recovery result:
+The classifier and evaluation split are held fixed; the retrieval representation
+is changed.
 
-| Method (GTC-only calibrated) | Macro AUC | ECE |
+### GTC-only calibrated extension
+
+A validation-calibrated soft gate was additionally evaluated:
+
+| Method | Macro AUC | ECE |
 |---|---:|---:|
-| MedSigLIP + cuVS, soft-gated | 0.824 | 0.015 |
+| MedSigLIP + cuVS, soft-gated | **0.824** | **0.015** |
 
-> Do not mix these numbers with the original MICCAI paper. The MICCAI research
-> established the missing-context recovery framework; the MedSigLIP/cuVS numbers
-> here are the GTC extension.
+This calibrated variant is reported separately from the base retrieval result.
 
----
-
-## Demo examples
-
-The interface ships three explanatory built-in cases (image-only → MediRely on the
-headline finding):
-
-| Example | Type | Image-only → MediRely | Evidence reliability |
-|---|---|---|---|
-| **Strong recovery** | coherent evidence | No Finding **4% → 96%** | HIGH |
-| **Ambiguous / conflicting** | atelectasis, neighbours disagree | Atelectasis **46% → 68%** | MEDIUM |
-| **External X-ray (demo)** | cardiomegaly, user-provided image | **82% → 98%** | — |
-
-- **Strong recovery**: retrieved neighbours are consistently normal; recovered
-  context strengthens the prediction with high reliability.
-- **Ambiguous / conflicting**: retrieved neighbours disagree, so MediRely reports
-  **lower** reliability — it does not blindly trust the recovered context.
-- **External X-ray (demo example only)**: an out-of-dataset image used to
-  illustrate the workflow. This is a **demonstration example, not benchmark
-  evidence**; the model prediction may be described as *consistent* with the image
-  source, but this is **not** formal clinical ground-truth validation.
+> The MedSigLIP/cuVS experiments are GTC extensions and should not be interpreted
+> as the original MICCAI paper results.
 
 ---
 
-## Performance and latency
+## Demo Examples
 
-Measured **local demo** end-to-end inference times on the maintainer's demo
-hardware — **NVIDIA GeForce RTX 2060, 6 GB VRAM** (WSL2 backend):
+| Example | Image-only → MediRely | Evidence Reliability |
+|---|---:|---:|
+| Strong recovery | No Finding **4% → 96%** | HIGH |
+| Ambiguous evidence | Atelectasis **46% → 68%** | MEDIUM |
+| External X-ray demo | Cardiomegaly **82% → 98%** | — |
 
-| Run | End-to-end (ms) |
+The first example shows coherent retrieved evidence and a high reliability
+estimate.
+
+The second demonstrates the opposite behavior: retrieved evidence is less
+consistent, so MediRely reports lower reliability rather than blindly trusting
+the recovered context.
+
+The external X-ray is included only to demonstrate the workflow on a
+user-provided image. It is **not part of the benchmark** and should not be
+interpreted as formal clinical validation.
+
+---
+
+## Performance
+
+Observed end-to-end demo inference times on the local test machine:
+
+**NVIDIA GeForce RTX 2060 6 GB · WSL2 backend**
+
+| Demo run | End-to-end latency |
 |---|---:|
-| 1 | 670.8 |
-| 2 | 640.4 |
-| 3 | 596.7 |
+| 1 | 670.8 ms |
+| 2 | 640.4 ms |
+| 3 | 596.7 ms |
 
-The **first** inference after launch is slower (model + CUDA-kernel warm-up) and is
-**not** representative inference latency; subsequent runs are faster. These numbers
-are specific to the RTX 2060 6 GB demo machine and **should not be generalized** to
-other GPUs.
+These are local demo measurements and are hardware-specific.
+
+The first inference after application launch may be slower because of model and
+CUDA initialization.
 
 ---
 
-## Local installation
+# Installation
 
-### Prerequisites
+## Prerequisites
 
-- An NVIDIA GPU and a **recent NVIDIA driver**.
-- For genuine cuVS: **WSL2 (Ubuntu)** — NVIDIA cuVS / RAPIDS provide Linux/WSL2
-  wheels only; there is **no native-Windows cuVS**. Your Windows driver must
-  support **CUDA 12** for the WSL2 backend.
-- **Conda / Miniconda** and **Git**.
+- NVIDIA GPU
+- Recent NVIDIA driver with WSL2 GPU support
+- Windows 11 + WSL2 Ubuntu recommended for genuine cuVS
+- Conda / Miniconda
+- Git
 
-### Tested environment (maintainer's WSL2 setup)
-
-> Reported by the maintainer's working machine. Versions are pinned in
-> `requirements-wsl-cuvs.txt`.
+### Tested Environment
 
 | Component | Version |
 |---|---|
 | Host | Windows 11 |
 | Backend | WSL2 Ubuntu 24.04 |
-| GPU | NVIDIA GeForce RTX 2060, 6 GB |
+| GPU | NVIDIA GeForce RTX 2060 6 GB |
 | Python | 3.11 |
-| PyTorch | 2.8.0 + CUDA 12.9 |
+| PyTorch | 2.8.0 + cu129 |
 | torchvision | 0.23.0 |
 | transformers | 4.45.2 |
 | NVIDIA cuVS | 24.12 |
@@ -345,266 +471,369 @@ other GPUs.
 | pydantic | 2.9.2 |
 | huggingface_hub | 0.25.2 |
 
-### Step-by-step (WSL2, genuine cuVS)
+---
 
-```bash
-git clone <repo-url> medirely
-cd medirely
+## Model Setup
 
-conda create -n medirely_live python=3.11 -y
-conda activate medirely_live
+MedSigLIP weights are not redistributed.
 
-# CUDA-12 PyTorch (match your driver; cu129 wheels used on the tested machine)
-pip install torch==2.8.* torchvision==0.23.* --index-url https://download.pytorch.org/whl/cu129
+Obtain `google/medsiglip-448` from its official distribution and either place it
+at:
 
-# genuine NVIDIA cuVS (Linux/WSL2 wheel from NVIDIA's index)
-pip install --extra-index-url https://pypi.nvidia.com cuvs-cu12==24.12.*
-
-# application dependencies (pinned)
-pip install -r requirements-wsl-cuvs.txt
+```text
+./medsiglip-448/
 ```
 
-### Model setup — MedSigLIP
-
-MediRely uses `google/medsiglip-448`. This model is **gated** on Hugging Face and
-may require accepting the Health AI Developer Foundations (HAI-DEF) terms on the
-model page before download.
-
-- Download the snapshot and place it at **`./medsiglip-448/`** (so that
-  `./medsiglip-448/config.json` exists), **or** set an environment variable:
-  - `MEDIRELY_MODEL_ROOT=/path/to/parent` → expects `/path/to/parent/medsiglip-448`, or
-  - `MEDIRELY_MEDSIGLIP_DIR=/path/to/medsiglip-448` (used by scripts).
-- **Do not commit** the weights or any Hugging Face token. `.gitignore` already
-  excludes `medsiglip-448/` and `*.safetensors`.
-
-### Artifact / clinical-memory setup
-
-The demo consumes pre-generated artifacts. The **researcher-generated, audited-safe**
-ones now ship in **`public_artifacts/`** (see
-[`public_artifacts/ARTIFACTS.md`](public_artifacts/ARTIFACTS.md) for the full manifest,
-SHA256 checksums, and sanitization details). Gated weights and source imagery are
-**not** redistributed and must be obtained from their official sources.
-
-Status legend: **Included** (ships in this repo) · **Public generated** (researcher-made,
-in `public_artifacts/`) · **User-provided** (you supply local paths) · **Official source**
-(obtain from a gated/licensed provider) · **Optional**.
-
-| File | Status | How to obtain / generate |
-|---|---|---|
-| `configs/iu_xray_xrv.yaml` | ✅ Included | ships in `configs/` |
-| `best_iu_full_image_text_xrv.pth` | 🟢 Public generated | in `public_artifacts/` (classifier weights + `text_vocab`; weights unchanged, verified) |
-| `medsiglip_train_embeddings.npz` | 🟢 Public generated | in `public_artifacts/` (MedSigLIP embeddings of the 5217 train images; **paths/IDs removed**, values identical) |
-| `iu_train_memory_bank_public.pt` | 🟢 Public generated | in `public_artifacts/` (sanitized XRV bank: embeddings+labels only; report text/paths removed) |
-| `step4_medsiglip_comparison.json` | 🟢 Public generated | in `public_artifacts/` (AUC + reliability-gate calibration; metrics unchanged) |
-| `medsiglip-448/` weights | 🔒 Official source | **gated** — download from https://huggingface.co/google/medsiglip-448 (accept license); place at `./medsiglip-448/` or set `MEDIRELY_MEDSIGLIP_DIR`. **Not redistributed here.** |
-| IU X-Ray images (`bank_images/`, `demo_images/`) | 🔒 Official source | obtain from Open-i / Indiana University: https://openi.nlm.nih.gov/ ; then run `python scripts/prepare_local_iu_assets.py`. **Not redistributed here.** |
-| `iu_train_memory_bank_xrv.pt` (full, w/ report text) | 🟡 User-provided (optional) | your local private bank; enables real report snippets in the GUI. The public sanitized bank above is a drop-in with identical numbers. |
-| `gallery_sources.json` | 🟡 User-provided | copy `configs/gallery_sources.example.json` → `gtc_demo/artifacts/gallery_sources.json` and point `image_path`s at your local IU PNGs |
-
-**Reproducibility note.** With only the four `public_artifacts/` files + the gated
-MedSigLIP weights + your own copy of the IU images, the live cuVS pipeline reproduces
-the reported numbers exactly (retrieval/reliability/prediction are numerically
-identical whether you use the private or the public bank — the sanitized artifacts
-preserve every value used at inference). Report **text snippets** in the GUI require
-the private full bank; they are display-only and never affect predictions, and are
-**not** fabricated for the public bank.
-
-The **IU (Indiana University) Chest X-Ray** dataset is de-identified (U.S. National
-Library of Medicine Open-i) but is **not** redistributed here. **Do not commit patient
-data or absolute local paths** — all paths are configurable via the environment
-variables above.
-
-Fetch + verify the public artifacts (from a GitHub Release or your own Google Drive
-links) with:
+or configure:
 
 ```bash
-python scripts/download_public_artifacts.py --base-url <release-or-drive-base-url>
-# checks each file's SHA256 against public_artifacts/ARTIFACTS.md; never fetches gated weights/data
+export MEDIRELY_MEDSIGLIP_DIR=/path/to/medsiglip-448
 ```
 
-> `.gitignore` publishes only `public_artifacts/` and excludes everything else
-> sensitive (`medsiglip-448/`, `*.safetensors`, the private `*.pth`/`*.pt`/`*.npz`
-> outside `public_artifacts/`, `bank_images/`, `demo_images/`, `data/`, `outputs/`,
-> real `gallery_sources.json`). The repository ships **code + docs + audited public
-> artifacts + recorded preview assets**.
+Do not commit MedSigLIP weights or authentication tokens.
 
 ---
 
-## Running the demo
+## Public Artifact Setup
 
-Primary (WSL2, genuine cuVS):
+The repository contains four audited researcher-generated artifacts:
+
+| Artifact | Availability | Purpose |
+|---|---|---|
+| `best_iu_full_image_text_xrv.pth` | Included in `public_artifacts/` | validated multimodal classifier checkpoint |
+| `medsiglip_train_embeddings.npz` | Included in `public_artifacts/` | MedSigLIP retrieval embeddings |
+| `iu_train_memory_bank_public.pt` | Included in `public_artifacts/` | sanitized numerical clinical memory |
+| `step4_medsiglip_comparison.json` | Included in `public_artifacts/` | reliability calibration and evaluation metadata |
+
+The public versions were sanitized and validated against the original research
+artifacts.
+
+Validation showed:
+
+```text
+Private vs public:
+retrieval ranking difference = 0
+reliability difference       = 0
+prediction difference        = 0
+```
+
+The sanitized memory bank preserves the numerical information required for
+retrieval, reliability estimation, and prediction.
+
+It intentionally excludes:
+
+- full IU X-Ray report text,
+- source-image paths,
+- patient/study identifiers,
+- absolute machine paths.
+
+### About report excerpts
+
+The recorded demo shows retrieved report excerpts because the maintainer's local
+research environment has access to the source reports.
+
+Those report texts are **not redistributed in this repository**.
+
+A fresh public installation can reproduce the numerical retrieval, reliability,
+and prediction pipeline using the sanitized artifacts. Displaying the original
+report excerpts requires the user to obtain the source IU X-Ray resources
+separately.
+
+MediRely never fabricates replacement report text when those excerpts are
+unavailable.
+
+---
+
+## IU X-Ray Local Assets
+
+IU X-Ray source images and reports are not redistributed by this repository.
+
+After obtaining the dataset from its official source, local assets can be
+configured with:
 
 ```bash
-export MEDIRELY_MODEL_ROOT="$PWD"     # if ./medsiglip-448 is in the repo root
+python scripts/prepare_local_iu_assets.py
+```
+
+An example gallery configuration is provided at:
+
+```text
+configs/gallery_sources.example.json
+```
+
+The real local configuration remains gitignored.
+
+---
+
+## Running the Demo
+
+### Genuine NVIDIA cuVS
+
+```bash
+export MEDIRELY_MODEL_ROOT="$PWD"
 ./run_local_cuvs.sh
 ```
 
-- The inference backend runs inside **WSL2**; open the app from your **Windows
-  browser** at **http://localhost:7860**.
-- The **first** inference is slower (models + CUDA kernels warming up). Subsequent
-  runs are faster — do not treat the first-run time as steady-state latency.
-- `run_local_cuvs.sh` sets `MEDIRELY_RETRIEVAL_BACKEND=cuvs` (**strict**): if
-  genuine cuVS cannot import/build, the app **aborts with a clear error** rather
-  than silently falling back to PyTorch.
+Then visit:
+
+```text
+http://localhost:7860
+```
+
+The strict launcher requires genuine cuVS.
+
+If cuVS cannot be initialized, the application fails clearly rather than silently
+falling back.
 
 ---
 
-## Verifying NVIDIA cuVS is active
+## Verifying NVIDIA cuVS
 
-At startup the app prints a readiness report; in cuVS mode it includes:
+The application startup report checks:
 
-```
-[OK] RTX 2060 / CUDA GPU visible
-[OK] MedSigLIP encoder + bank
+```text
+[OK] NVIDIA GPU visible
+[OK] MedSigLIP encoder + retrieval bank
 [OK] XRV model + classifier
 [OK] reliability calibration
-[OK] demo cases
-[OK] genuine NVIDIA cuVS (import + index build)
-  retrieval backend = 'cuvs' → shown as 'NVIDIA cuVS'
+[OK] genuine NVIDIA cuVS
 ```
 
-In the GUI, the header/deployment badge shows **`NVIDIA cuVS`** and a **`LIVE`**
-status. You can also confirm end-to-end that cuVS and PyTorch produce identical
-results on your GPU:
+The GUI then displays:
+
+```text
+NVIDIA cuVS / LIVE
+```
+
+End-to-end cuVS-vs-PyTorch parity can be tested with:
 
 ```bash
-python -m gtc_demo.scripts.local_cuvs_parity     # writes gtc_demo/artifacts/local_cuvs_end_to_end_parity.json
+python -m gtc_demo.scripts.local_cuvs_parity
 ```
 
-If cuVS is not genuinely available, this script and the strict launcher **fail
-clearly** — the demo never labels a fallback as cuVS.
+The validated implementation produced:
+
+- Top-1 agreement: 100%
+- Top-K set agreement: 100%
+- Top-K ordered agreement: 100%
+- maximum similarity difference: approximately `1e-6`
+- retrieval → reliability → prediction parity: passed
 
 ---
 
-## Windows fallback
+## Windows Fallback
 
-Native Windows has **no cuVS**. A separate PyTorch CUDA fallback is provided:
-
-| Configuration | Retrieval backend | GUI badge |
-|---|---|---|
-| **WSL2 backend** | genuine **NVIDIA cuVS** | `NVIDIA cuVS / LIVE` |
-| **Windows-native fallback** | **PyTorch CUDA** exact search | `PyTorch CUDA / LIVE` |
+Native Windows uses a PyTorch CUDA exact-search fallback:
 
 ```bat
 run_local_gpu.bat
 ```
 
-This runs `MEDIRELY_RETRIEVAL_BACKEND` in `auto`/`torch` mode. The MedSigLIP
-embedding + the full MediRely pipeline are identical; only the nearest-neighbour
-**search implementation** differs. The Windows-native fallback is **never** labelled
-as cuVS.
+| Configuration | Retrieval Backend | GUI Badge |
+|---|---|---|
+| WSL2 | **NVIDIA cuVS** | `NVIDIA cuVS / LIVE` |
+| Native Windows | PyTorch CUDA | `PyTorch CUDA / LIVE` |
+
+The fallback is never presented as NVIDIA cuVS.
 
 ---
 
-## Repository structure
+## Repository Structure
 
-```
-medirely/
-├── gtc_demo/                     # the GTC demo application package
-│   ├── app/                      # Gradio app, components, styles, adapters, config
-│   │   ├── app.py                #   entry point (python -m gtc_demo.app.app)
-│   │   ├── components.py         #   HTML builders (header, evidence, reliability, ...)
-│   │   ├── styles.css            #   dark radiology-workstation theme
-│   │   ├── local_config.py       #   env-configurable artifact/model paths
-│   │   └── gallery.json          #   the 3 demo cases (labels + explanations)
+```text
+MediRely_GTC/
+├── assets/
+│   ├── medirely_demo.gif
+│   └── medirely_architecture_v2.gif
+│
+├── configs/
+│   ├── iu_xray_xrv.yaml
+│   └── gallery_sources.example.json
+│
+├── gtc_demo/
+│   ├── app/
 │   ├── pipeline/
-│   │   └── medirely_gtc.py       # orchestrator: retrieval swap + validated classifier
 │   ├── models/
-│   │   └── medsiglip_encoder.py  # frozen MedSigLIP image-tower encoder
-│   ├── retrieval/                # backend abstraction
-│   │   ├── cuvs_index.py         #   genuine NVIDIA cuVS (brute_force) + fallbacks
-│   │   └── torch_retriever.py    #   PyTorch CUDA exact search
-│   ├── scripts/                  # parity / self-test utilities
-│   │   ├── local_cuvs_parity.py  #   end-to-end cuVS-vs-torch parity
-│   │   └── benchmark_retrieval_parity.py
-│   ├── demo_assets/              # recorded outputs for CPU --preview (de-identified)
-│   └── artifacts/cuvs_parity.json# retrieval parity metrics (no data)
-├── utils/                        # validated research utilities (io, retrieval, transforms, ...)
-├── models/                       # validated research model code (classifier, encoders, bank)
-├── configs/iu_xray_xrv.yaml      # model + retrieval configuration (paths are placeholders)
-├── run_local_cuvs.sh             # WSL2 launcher (genuine cuVS, strict)
-├── run_local_gpu.bat             # Windows-native launcher (PyTorch CUDA fallback)
-├── requirements-wsl-cuvs.txt     # WSL2 cuVS environment (pinned)
-├── requirements-local-gpu.txt    # Windows-native fallback environment
-└── README.md
+│   ├── retrieval/
+│   ├── scripts/
+│   ├── demo_assets/
+│   └── artifacts/
+│
+├── models/
+├── utils/
+│
+├── public_artifacts/
+│   ├── ARTIFACTS.md
+│   ├── best_iu_full_image_text_xrv.pth
+│   ├── medsiglip_train_embeddings.npz
+│   ├── iu_train_memory_bank_public.pt
+│   └── step4_medsiglip_comparison.json
+│
+├── scripts/
+│   ├── download_public_artifacts.py
+│   └── prepare_local_iu_assets.py
+│
+├── QUICKSTART.md
+├── README.md
+├── requirements-wsl-cuvs.txt
+├── requirements-local-gpu.txt
+├── run_local_cuvs.sh
+└── run_local_gpu.bat
 ```
 
-Gitignored (obtain/generate locally): `medsiglip-448/`, `artifacts_local/`,
-`bank_images/`, `demo_images/`, `*.pth`, `*.pt`, `*.npz`, `data/`, `outputs/`.
+Not redistributed:
+
+```text
+medsiglip-448/
+IU X-Ray source images
+IU X-Ray source reports
+private full memory bank
+real gallery_sources.json
+```
 
 ---
 
 ## Reproducibility
 
-- **Retrieval encoder:** `google/medsiglip-448`
-  - Model revision: `9cea28a1a1195f665105faa6e8544c112fd960a4`
-  - Preprocessing: official `SiglipImageProcessor` — 448×448, bicubic, rescale
-    1/255, mean/std = 0.5; grayscale X-ray replicated to 3 channels; frozen image
-    tower via `get_image_features` (embedding dim **1152**, float32).
-- **Prediction encoder:** TorchXRayVision DenseNet‑121 (`densenet121-res224-all`),
-  224×224, ImageNet normalization, grayscale→3 channels.
-- **Top-K:** default **10** (`configs/iu_xray_xrv.yaml → retrieval.topk`).
-- **Retrieval math:** L2-normalized vectors, squared-Euclidean, `cosine = 1 − d/2`;
-  row order and row IDs of the memory bank are preserved exactly across backends.
-- **cuVS vs PyTorch parity (verified):** on the maintainer's RTX 2060, Top-1 /
-  Top-K set / ordered / Jaccard agreement = **100%** with max similarity difference
-  ~`1e-6`. End-to-end (retrieval → reliability → prediction) parity is reproducible
-  with `python -m gtc_demo.scripts.local_cuvs_parity`.
-- **Hardware for demo latency:** NVIDIA GeForce RTX 2060, 6 GB (WSL2 Ubuntu 24.04).
+### MedSigLIP
+
+Model:
+
+```text
+google/medsiglip-448
+```
+
+Model revision:
+
+```text
+9cea28a1a1195f665105faa6e8544c112fd960a4
+```
+
+Retrieval embedding dimension:
+
+```text
+1152
+```
+
+Official `SiglipImageProcessor` preprocessing is used at 448×448.
+
+### Prediction Encoder
+
+TorchXRayVision:
+
+```text
+densenet121-res224-all
+```
+
+is used for the validated prediction branch.
+
+### Retrieval
+
+Default:
+
+```text
+Top-K = 10
+```
+
+Vectors are L2 normalized and searched using squared Euclidean distance.
+
+Cosine similarity is recovered as:
+
+```text
+cosine = 1 - distance / 2
+```
+
+### Public Artifact Validation
+
+The sanitized public artifacts were compared directly against the private
+research artifacts.
+
+Across all validated demo cases:
+
+- Top-K retrieval order: identical
+- Similarities: identical within numerical precision
+- Reliability: identical
+- Prediction: identical
+- maximum cuVS-vs-PyTorch similarity difference: approximately `9.5e-7`
+
+No inference, retrieval, calibration, or evaluation logic was changed during
+artifact sanitization.
 
 ---
 
-## Research foundation
+## Research Foundation
 
-The original **MediRely** research established the **missing-context recovery
-framework** and was accepted at the **MICCAI 2026 ML-CDS Workshop**.
+The original **MediRely** research established the missing-context recovery
+framework and was accepted at the **MICCAI 2026 ML-CDS Workshop**.
 
-> The original MediRely research established the missing-context recovery
-> framework. This GTC demo **extends** the system with an interactive application,
-> **MedSigLIP-based evidence retrieval**, and **NVIDIA cuVS** integration.
+**Paper:**  
+MediRely: Reliability-Aware Retrieval for Robust Multimodal Clinical Decision Support
 
-The MedSigLIP + NVIDIA cuVS results in this repository are the **GTC extension** and
-are **not** the original MICCAI paper results.
+The GTC version extends that research into an interactive open-model application
+with:
+
+- MedSigLIP-based medical-image retrieval,
+- NVIDIA cuVS GPU vector search,
+- an interactive evidence/reliability interface,
+- audited public inference artifacts.
+
+The **MedSigLIP + NVIDIA cuVS results reported in this repository are GTC
+extensions** and are not the original MICCAI paper results.
 
 ---
 
-## Clinical disclaimer
+## Clinical Disclaimer
 
-**Research prototype — not for clinical use.** MediRely is intended for research
-and demonstration only. It is **not** a medical device, not a diagnostic tool, and
-not a clinical decision-support system. It must not be used for patient care or any
-real clinical decision-making.
+**Research prototype — not for clinical use.**
+
+MediRely is intended exclusively for research and demonstration. It is not a
+medical device, diagnostic system, or production clinical decision-support tool
+and must not be used for patient care or real clinical decision-making.
 
 ---
 
 ## Citation
 
-<!-- TODO: replace with the final publication metadata when available -->
+If you use the original MediRely research, please cite:
+
 ```bibtex
-@inproceedings{medirely2026,
-  title     = {MediRely: Reliability-Aware Recovery for Missing Clinical Context in Multimodal Medical AI},
-  author    = {<authors>},
-  booktitle = {MICCAI 2026 ML-CDS Workshop},
-  year      = {2026},
-  note      = {GTC demo extension: MedSigLIP evidence retrieval + NVIDIA cuVS}
+@inproceedings{
+jian2026medirely,
+title={MediRely: Reliability-Aware Retrieval for Robust Multimodal Clinical Decision Support},
+author={Jia-Xian Jian and Jenq-Neng Hwang and Pau-Choo Chung},
+booktitle={ML-CDS 2026: Multimodal Learning and Fusion Across Scales for Clinical Decision Support},
+year={2026},
+url={https://openreview.net/forum?id=Ry2H6QuVpc}
 }
 ```
+
+The MedSigLIP + NVIDIA cuVS implementation in this repository is a GTC extension
+of the research system.
 
 ---
 
 ## Acknowledgments
 
-- **NVIDIA cuVS** — GPU nearest-neighbour retrieval backend.
-- **MedSigLIP** (`google/medsiglip-448`) — medical image–text representation.
-- **TorchXRayVision** — DenseNet‑121 chest X-ray encoder.
-- **Gradio** — interactive demo framework.
-- The **IU (Indiana University) Chest X-Ray** dataset (NLM Open-i).
+MediRely builds on:
+
+- **NVIDIA cuVS** for GPU nearest-neighbor retrieval
+- **MedSigLIP** (`google/medsiglip-448`) for medical-image retrieval embeddings
+- **TorchXRayVision** for the validated DenseNet-121 prediction representation
+- **Gradio** for the interactive interface
+- **IU Chest X-Ray / NLM Open-i** for the research dataset
+
+The original MediRely research was developed with academic collaborators and
+accepted at the MICCAI 2026 ML-CDS Workshop.
 
 ---
 
 ## License
 
-No license file is currently present in this repository. **Please add a `LICENSE`
-before making the repository public** (e.g. MIT / Apache-2.0 for the code), and note
-that model and dataset licenses (MedSigLIP / HAI-DEF terms, IU X-Ray terms) apply to
-their respective artifacts and are **not** granted by this repository.
+A repository-level code license has not yet been specified.
+
+Third-party models, datasets, and dependencies remain subject to their respective
+licenses and terms, including **MedSigLIP / HAI-DEF**, **IU X-Ray / NLM Open-i**,
+NVIDIA cuVS, TorchXRayVision, and other dependencies.
+
+No third-party model weights or source IU X-Ray dataset contents are redistributed
+by this repository.
