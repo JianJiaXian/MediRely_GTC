@@ -234,10 +234,7 @@ Retrieved evidence is aggregated into recovered clinical context, which is combi
 with the XRV image features by the existing multimodal classifier.
 
 **Evidence Reliability** is estimated alongside the recovered context and displayed
-to the user; it is not directly fed into the base classifier.
-
-**Evidence Reliability is estimated and displayed alongside the prediction.**
-It is not directly fed into the base multimodal classifier.
+to the user; it is not directly fed into the base multimodal classifier.
 
 A separately evaluated GTC-only calibrated soft-gate can optionally blend the
 image-only and recovered-context probabilities.
