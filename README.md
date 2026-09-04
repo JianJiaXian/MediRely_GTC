@@ -192,12 +192,12 @@ rather than silently presenting another retrieval backend as cuVS.
 
 ## Key Features
 
-- 🩻 **Missing-context recovery** for multimodal medical AI
-- 🔎 **Real evidence retrieval** instead of generated reports
-- 🧠 **MedSigLIP** medical-image embeddings for retrieval
-- ⚡ **NVIDIA cuVS** GPU vector search over clinical memory
-- 🛡️ **Reliability-aware recovery** using evidence agreement and retrieval confidence
-- 🖥️ **Interactive local GPU demo** with transparent backend reporting
+-  **Missing-context recovery** for multimodal medical AI
+-  **Real evidence retrieval** instead of generated reports
+-  **MedSigLIP** medical-image embeddings for retrieval
+-  **NVIDIA cuVS** GPU vector search over clinical memory
+-  **Reliability-aware recovery** using evidence agreement and retrieval confidence
+-  **Interactive local GPU demo** with transparent backend reporting
 
 ---
 
