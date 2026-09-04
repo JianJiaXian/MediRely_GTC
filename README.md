@@ -767,7 +767,7 @@ The original **MediRely** research established the missing-context recovery
 framework and was accepted at the **MICCAI 2026 ML-CDS Workshop**.
 
 **Paper:**  
-MediRely: Reliability-Aware Retrieval for Robust Multimodal Clinical Decision Support
+[MediRely: Reliability-Aware Retrieval for Robust Multimodal Clinical Decision Support](https://openreview.net/forum?id=Ry2H6QuVpc)
 
 The GTC version extends that research into an interactive open-model application
 with:
