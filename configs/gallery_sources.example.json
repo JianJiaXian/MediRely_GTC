@@ -1,0 +1,15 @@
+{
+  "_comment": "Template for gtc_demo/artifacts/gallery_sources.json. Copy this file to that path and replace each image_path with a LOCAL path to the corresponding IU Chest X-Ray PNG you obtained from the official OpenI / Indiana University source (see scripts/prepare_local_iu_assets.py). The real gallery_sources.json is gitignored because it contains absolute local paths to source dataset images, which are NOT redistributed here. Labels are display captions only.",
+  "strong_recovery": {
+    "label": "Strong Recovery",
+    "image_path": "/path/to/your/iu_xray/images/CXR<ID>_IM-<...>-<...>.png"
+  },
+  "coherent_evidence": {
+    "label": "Coherent Evidence",
+    "image_path": "/path/to/your/iu_xray/images/CXR<ID>_IM-<...>-<...>.png"
+  },
+  "conflicting_evidence": {
+    "label": "Conflicting Evidence",
+    "image_path": "/path/to/your/iu_xray/images/CXR<ID>_IM-<...>-<...>.png"
+  }
+}

@@ -1,0 +1,28 @@
+# MediRely GTC demo — LOCAL GPU (Windows / native NVIDIA) dependencies.
+# REAL inference: MedSigLIP + XRV classifier + PyTorch-CUDA retrieval fallback.
+# NVIDIA cuVS / RAPIDS are NOT listed: they have no native-Windows wheels
+# (Linux / WSL2 only), so Local GPU mode uses the PyTorch CUDA exact-search
+# fallback and displays "PyTorch CUDA" truthfully.
+#
+# Do NOT `pip install torch` from here blindly — install a CUDA-enabled build
+# matching your driver first (see WINDOWS_LOCAL_GPU.md), e.g.:
+#   pip install torch==2.3.* torchvision --index-url https://download.pytorch.org/whl/cu121
+#
+transformers>=4.45,<4.50
+tokenizers>=0.20
+safetensors>=0.4
+torchxrayvision>=1.2
+scikit-learn>=1.1
+pillow>=9.0
+numpy>=1.23
+pandas>=1.5
+pyyaml>=6.0
+gradio==4.44.1
+gradio-client==1.3.0
+fastapi==0.112.4
+starlette==0.38.6
+pydantic==2.9.2
+pydantic-core==2.23.4
+uvicorn==0.30.6
+# sentencepiece is intentionally omitted — the encoder loads only the MedSigLIP
+# image tower (AutoImageProcessor), never the text tokenizer.

@@ -1,0 +1,92 @@
+{
+  "label": "GTC MedSigLIP retrieval extension (NOT original MICCAI results)",
+  "n_test": 1517,
+  "metrics": {
+    "image_only": {
+      "macro_auc": 0.7218949941888655,
+      "micro_auc": 0.37472438765304444,
+      "macro_f1": 0.05217251219736721,
+      "micro_f1": 0.06696832579185522,
+      "macro_precision": 0.07537342767295598,
+      "macro_recall": 0.07587159424780793,
+      "ece": 0.14417329937265938
+    },
+    "xrv_cuvs_pseudo": {
+      "macro_auc": 0.7773937321476538,
+      "micro_auc": 0.8622846691477747,
+      "macro_f1": 0.06566030606461364,
+      "micro_f1": 0.18853974121996303,
+      "macro_precision": 0.19288382072472982,
+      "macro_recall": 0.043680136697941366,
+      "ece": 0.05616298646494118
+    },
+    "medsiglip_cuvs_pseudo": {
+      "macro_auc": 0.818552630357648,
+      "micro_auc": 0.9043642070901426,
+      "macro_f1": 0.11498656314504753,
+      "micro_f1": 0.37095501183898977,
+      "macro_precision": 0.3102447660098522,
+      "macro_recall": 0.08118747983713674,
+      "ece": 0.045272583920684166
+    },
+    "xrv_soft_gated": {
+      "macro_auc": 0.7715879612787276,
+      "micro_auc": 0.6481557653526027,
+      "macro_f1": 0.06795077658303464,
+      "micro_f1": 0.14106280193236714,
+      "macro_precision": 0.21313327962764053,
+      "macro_recall": 0.043255103618929786,
+      "ece": 0.023661469921007684
+    },
+    "medsiglip_soft_gated_GTConly_gate": {
+      "macro_auc": 0.8236666603283596,
+      "micro_auc": 0.8190742250915092,
+      "macro_f1": 0.10167958191170703,
+      "micro_f1": 0.30412371134020616,
+      "macro_precision": 0.2721706454465075,
+      "macro_recall": 0.0660785338976928,
+      "ece": 0.014901717330970964
+    }
+  },
+  "prediction_agreement_B_vs_C_bitwise": 0.9691001977587343,
+  "num_samples_with_changed_prediction": 369,
+  "neighbor_agreement_mean": {
+    "xrv": 0.9338250160217285,
+    "medsiglip": 0.9456163644790649
+  },
+  "neighbor_label_consistency_mean": {
+    "xrv": 0.9338249835201055,
+    "medsiglip": 0.9456163480553724
+  },
+  "similarity_distribution": {
+    "xrv_sim_max": {
+      "mean": 0.9917856454849243,
+      "std": 0.004183088429272175
+    },
+    "medsiglip_sim_max": {
+      "mean": 0.9013476371765137,
+      "std": 0.04482102021574974
+    }
+  },
+  "reliability_gate": {
+    "xrv_validated_gate": {
+      "coef": {
+        "sim_max": 0.10448164823557851,
+        "sim_margin": -0.03813528841531209,
+        "agree": 1.9555009374323302
+      },
+      "intercept": -0.975983104578403,
+      "val_pseudo_helps_prevalence": 0.7214673913043478
+    },
+    "medsiglip_gtc_gate": {
+      "coef": {
+        "sim_max": 2.9918035849564517,
+        "sim_margin": -0.8132877577943233,
+        "agree": 1.2276099206134492
+      },
+      "intercept": -2.6941900020642304,
+      "val_pseudo_helps_prevalence": 0.7540760869565217
+    },
+    "calibration_note": "XRV-fit gate applied to MedSigLIP sims is MISCALIBRATED; alpha mean XRV-gate-on-MedSigLIP=0.724 vs GTC-gate=0.756. Validated XRV reliability preserved as reference."
+  }
+}

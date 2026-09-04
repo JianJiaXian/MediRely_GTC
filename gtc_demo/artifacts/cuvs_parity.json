@@ -1,0 +1,15 @@
+{
+  "hardware": "NVIDIA H200",
+  "cuvs_version": "24.12.00",
+  "num_queries": 64,
+  "k": 10,
+  "query_encoder": "MedSigLIP",
+  "backend": "NVIDIA cuVS",
+  "reference_backend": "PyTorch exact",
+  "top1_agreement": 1.0,
+  "topk_set_agreement": 0.984375,
+  "ordered_topk_agreement": 0.984375,
+  "mean_jaccard": 0.997159,
+  "max_similarity_difference": 4.691e-05,
+  "notes": "Differences arise only from near-tied FP32 neighbors."
+}

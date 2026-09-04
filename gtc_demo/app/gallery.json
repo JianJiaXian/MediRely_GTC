@@ -1,0 +1,17 @@
+[
+  {
+    "key": "strong_recovery",
+    "label": "Strong Recovery",
+    "explanation": "Highly consistent retrieved evidence meaningfully strengthens the prediction."
+  },
+  {
+    "key": "coherent_evidence",
+    "label": "Coherent Evidence",
+    "explanation": "Similar real cases provide consistent clinical context without generating a replacement report."
+  },
+  {
+    "key": "conflicting_evidence",
+    "label": "Conflicting Evidence",
+    "explanation": "Retrieved cases disagree, so MediRely reports lower evidence reliability."
+  }
+]

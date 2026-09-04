@@ -1,0 +1,48 @@
+# ===== MediRely — do NOT commit data, weights, caches, or private files =====
+# model weights & snapshots (obtain via Hugging Face, gated)
+medsiglip-448/
+models/medsiglip-448/
+*.safetensors
+# checkpoints / banks / embeddings / indexes (generate locally)
+*.pth
+*.pt
+*.npz
+artifacts_local/
+# demo images / clinical memory image set (obtain from IU X-Ray)
+demo_images/
+bank_images/
+data/
+outputs/
+# real gallery_sources.json holds absolute local image paths — keep private
+# (publish configs/gallery_sources.example.json instead)
+gtc_demo/artifacts/gallery_sources.json
+artifacts_local/gallery_sources.json
+# generated / local
+gtc_demo/artifacts/local_cuvs_end_to_end_parity.json
+gtc_demo/logs/
+gtc_demo/artifacts/preview_*.png
+dist/
+# caches / envs / secrets
+__pycache__/
+*.pyc
+.python_userbase*/
+.xrv_cache/
+.cache/
+.venv/
+venv/
+.env
+*.token
+hf_token*
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# ===== public generated artifacts (audited safe — see public_artifacts/ARTIFACTS.md) =====
+!public_artifacts/
+!public_artifacts/*.pth
+!public_artifacts/*.pt
+!public_artifacts/*.npz
+!public_artifacts/*.json
+!public_artifacts/*.md

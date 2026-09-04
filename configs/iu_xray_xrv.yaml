@@ -1,0 +1,81 @@
+# Configuration for IU X-Ray (Indiana University Chest X-Ray) experiments.
+# All paths are absolute so that scripts behave identically on the login node
+# and inside SLURM/Singularity jobs.
+
+dataset:
+  name: iu_xray
+  root: ./data/IU_Xray
+  images_dir: ./data/IU_Xray/images
+  reports_csv: ./data/IU_Xray/reports.csv
+  # Split CSVs written by scripts/prepare_iu_xray_splits.py. If missing, the
+  # dataset will perform an on-the-fly deterministic split from reports.csv.
+  splits_dir: ./data/IU_Xray/splits_studylevel
+  image_size: 224
+  # If reports.csv has no label columns, labels are derived from report text
+  # by keyword matching (see datasets/iu_xray.py).
+  label_columns: null
+  findings:
+    - cardiomegaly
+    - effusion
+    - atelectasis
+    - pneumonia
+    - edema
+    - pneumothorax
+    - consolidation
+    - no_finding
+  split_ratios: [0.7, 0.1, 0.2]   # train / val / test
+  max_report_tokens: 128
+
+model:
+  image_encoder:
+    backbone: torchxrayvision   # CXR foundation model (DenseNet121, multi-dataset)
+    feature_dim: 1024
+    freeze: true                # backbone frozen; only the projection is trained
+    weights: densenet121-res224-all
+    embed_dim: 256
+  text_encoder:
+    type: bow                 # bow (vocab+embedding+avgpool) | clinicalbert
+    embed_dim: 256
+    vocab_size: 8000
+    max_tokens: 128
+  fusion:
+    type: concat              # concat | gated | film
+    hidden_dim: 256
+    dropout: 0.2
+
+train:
+  seed: 42
+  epochs: 20
+  batch_size: 32
+  num_workers: 4
+  lr: 0.0003
+  weight_decay: 0.0001
+  optimizer: adamw
+  scheduler: cosine
+  warmup_epochs: 1
+  amp: true
+  grad_clip: 5.0
+  monitor: macro_auc          # checkpoint selection metric
+  log_interval: 10
+
+retrieval:
+  topk: 10                    # default k for pseudo-modality retrieval
+  metric: cosine              # cosine | euclidean
+  weighting: similarity       # similarity (softmax) | average
+  softmax_temperature: 0.1
+  fallback: threshold         # none | threshold | mean | image_only
+  similarity_threshold: 0.5   # below this -> fallback path
+  normalize_embeddings: true
+  # Grouping-based pseudo-modality variant (advisor-suggested):
+  group_strategy: kmeans      # kmeans | label
+  n_groups: 16                # number of prototypes for the kmeans strategy
+
+paths:
+  output_root: ./outputs
+  checkpoints: ./outputs/checkpoints
+  logs: ./outputs/logs
+  memory_banks: ./outputs/memory_banks
+  retrievals: ./outputs/retrievals
+  tables: ./outputs/tables
+  figures: ./outputs/figures
+  predictions: ./outputs/predictions

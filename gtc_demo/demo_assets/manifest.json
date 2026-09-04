@@ -1,0 +1,26 @@
+{
+  "cases": [
+    {
+      "key": "strong_recovery",
+      "label": "Strong Recovery",
+      "recorded_backend": "cuvs",
+      "reliability_pct": 79,
+      "level": "HIGH"
+    },
+    {
+      "key": "coherent_evidence",
+      "label": "Coherent Evidence",
+      "recorded_backend": "cuvs",
+      "reliability_pct": 78,
+      "level": "HIGH"
+    },
+    {
+      "key": "conflicting_evidence",
+      "label": "Conflicting Evidence",
+      "recorded_backend": "cuvs",
+      "reliability_pct": 61,
+      "level": "MEDIUM"
+    }
+  ],
+  "note": "Exported REAL MedSigLIP->cuVS outputs for GPU-free local UI preview. No PHI / paths / identifiers."
+}
