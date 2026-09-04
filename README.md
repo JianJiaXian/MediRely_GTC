@@ -225,43 +225,16 @@ MediRely takes a different approach:
 
 ![MediRely architecture](assets/medirely_architecture_v2.gif)
 
-The system contains two distinct paths.
+MediRely uses two complementary representations of the same query X-ray:
+**MedSigLIP** provides the medical-image embedding used by **NVIDIA cuVS** for
+evidence retrieval, while **TorchXRayVision DenseNet-121** provides the image
+features used by the validated downstream prediction branch.
 
-### Evidence Retrieval Path
+Retrieved evidence is aggregated into recovered clinical context, which is combined
+with the XRV image features by the existing multimodal classifier.
 
-```text
-Query X-ray
-    ↓
-MedSigLIP
-    ↓
-Medical image embedding
-    ↓
-NVIDIA cuVS
-    ↓
-Top-K similar cases
-    ↓
-Retrieved clinical evidence
-    ↓
-MediRely context recovery
-    ├──→ Recovered clinical context
-    └──→ Evidence reliability
-```
-
-### Prediction Path
-
-```text
-Query X-ray
-    ↓
-TorchXRayVision DenseNet-121
-    ↓
-Image features
-           +
-Recovered clinical context
-           ↓
-Existing multimodal classifier
-           ↓
-Prediction
-```
+**Evidence Reliability** is estimated alongside the recovered context and displayed
+to the user; it is not directly fed into the base classifier.
 
 **Evidence Reliability is estimated and displayed alongside the prediction.**
 It is not directly fed into the base multimodal classifier.
