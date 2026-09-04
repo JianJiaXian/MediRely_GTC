@@ -63,7 +63,7 @@ report-generation model**.
 | XRV retrieval | 0.777 |
 | **MedSigLIP + NVIDIA cuVS retrieval** | **0.819** |
 
-### **0.722 → 0.819 Macro AUC**
+> **GTC extension: 0.722 → 0.819 macro AUC**
 
 with the **MedSigLIP + NVIDIA cuVS GTC retrieval extension**.
 
