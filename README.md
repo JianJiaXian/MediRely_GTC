@@ -1,5 +1,10 @@
 # MediRely
-
+> 🏆 **NVIDIA GTC Berlin 2026 Golden Ticket Developer Contest Entry**
+>
+> MediRely was submitted to the **NVIDIA GTC Berlin Golden Ticket Developer Contest**
+> as an open-source clinical AI demo powered by **NVIDIA cuVS**.
+>
+> 🔗 [View the original #NVIDIAGTC submission on LinkedIn](https://www.linkedin.com/posts/jia-xian-jian-b605882a9_nvidiagtc-nvidiagtc-nvidia-activity-7501767760834674688-UUhD)
 ### Reliable Clinical Context Recovery
 
 > **Retrieve, Don't Hallucinate. Recover, But Verify.**
